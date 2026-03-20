@@ -145,6 +145,11 @@ final class ComponentFactory implements ResetInterface
         return $this->components->get($metadata->getName());
     }
 
+    public function isComponentClass(string $class): bool
+    {
+        return isset($this->classMap[$class]);
+    }
+
     private function mount(object $component, array &$data, ComponentMetadata $componentMetadata): void
     {
         if ($component instanceof AnonymousComponent) {

@@ -15,6 +15,9 @@ use Symfony\UX\TwigComponent\BlockStack;
 use Twig\Attribute\YieldReady;
 use Twig\Compiler;
 use Twig\Environment;
+use Twig\Error\SyntaxError;
+use Twig\Extension\CoreExtension;
+use Twig\Node\Expression\NameExpression;
 use Twig\Node\Expression\AbstractExpression;
 use Twig\Node\Node;
 use Twig\Node\NodeOutputInterface;
@@ -29,9 +32,9 @@ use Twig\Template;
 #[YieldReady]
 final class ComponentNode extends Node implements NodeOutputInterface
 {
-    public function __construct(string $component, string $embeddedTemplateName, int $embeddedTemplateIndex, ?AbstractExpression $props, bool $only, int $lineno)
+    public function __construct(AbstractExpression $component, string $embeddedTemplateName, int $embeddedTemplateIndex, ?AbstractExpression $props, bool $only, int $lineno)
     {
-        $nodes = [];
+        $nodes = ['component' => $component];
         if (null !== $props) {
             $nodes['props'] = $props;
         }
@@ -41,7 +44,6 @@ final class ComponentNode extends Node implements NodeOutputInterface
         $this->setAttribute('only', $only);
         $this->setAttribute('embedded_template', $embeddedTemplateName);
         $this->setAttribute('embedded_index', $embeddedTemplateIndex);
-        $this->setAttribute('component', $component);
     }
 
     public function compile(Compiler $compiler): void
@@ -56,6 +58,63 @@ final class ComponentNode extends Node implements NodeOutputInterface
                ->string(ComponentRuntime::class)
                ->raw(");\n");
 
+        $componentNameValue = $compiler->getVarName();
+        $componentName = $compiler->getVarName();
+
+        $compiler
+            ->write(\sprintf('$%s = ', $componentNameValue))
+        ;
+
+        if ($this->getNode('component') instanceof NameExpression) {
+            $name = $this->getNode('component')->getAttribute('name');
+            $compiler->raw(\sprintf('\\array_key_exists(%s, $context) ? $context[%s] : %s', var_export($name, true), var_export($name, true), var_export($name, true)));
+        } else {
+            $compiler->subcompile($this->getNode('component'));
+        }
+
+        $compiler->raw(";\n");
+
+        $compiler
+            ->write(\sprintf('if (\\is_object($%s)) {', $componentNameValue))
+            ->raw("\n")
+            ->indent()
+            ->write(\sprintf('if (!$%s->isObjectComponent($%s)) {', $componentRuntime, $componentNameValue))
+            ->raw("\n")
+            ->indent()
+            ->write('throw new ')
+            ->raw('\\'.SyntaxError::class)
+            ->raw('(sprintf(')
+            ->string('The component expression passed to "{%% component %%}" must evaluate to a component name (string/scalar/Stringable) or a component object. Got object "%s".')
+            ->raw(', ')
+            ->raw(\sprintf('$%s::class', $componentNameValue))
+            ->raw('), ')
+            ->repr($this->getTemplateLine())
+            ->raw(", \$this->getSourceContext());\n")
+            ->outdent()
+            ->write("}\n")
+            ->write(\sprintf('$%s = $%s::class;', $componentName, $componentNameValue))
+            ->raw("\n")
+            ->outdent()
+            ->write(\sprintf('} elseif (\\is_scalar($%s) || $%s instanceof \\Stringable) {', $componentNameValue, $componentNameValue))
+            ->raw("\n")
+            ->indent()
+            ->write(\sprintf('$%s = (string) $%s;', $componentName, $componentNameValue))
+            ->raw("\n")
+            ->outdent()
+            ->write("} else {\n")
+            ->indent()
+            ->write('throw new ')
+            ->raw('\\'.SyntaxError::class)
+            ->raw('(sprintf(')
+            ->string('The component expression passed to "{%% component %%}" must evaluate to a component name (string/scalar/Stringable) or a component object. Got "%s".')
+            ->raw(', \\get_debug_type(')
+            ->raw(\sprintf('$%s', $componentNameValue))
+            ->raw(')), ')
+            ->repr($this->getTemplateLine())
+            ->raw(", \$this->getSourceContext());\n")
+            ->outdent()
+            ->write("}\n");
+
         /*
          * Block 1) PreCreateForRender handling
          *
@@ -64,7 +123,7 @@ final class ComponentNode extends Node implements NodeOutputInterface
          */
         $compiler
             ->write(\sprintf('$preRendered = $%s->preRender(', $componentRuntime))
-            ->string($this->getAttribute('component'))
+            ->raw(\sprintf('$%s', $componentName))
             ->raw(', ')
             ->raw('Twig\Extension\CoreExtension::toArray')
             ->raw('(');
@@ -96,7 +155,7 @@ final class ComponentNode extends Node implements NodeOutputInterface
          */
         $compiler
             ->write(\sprintf('$preRenderEvent = $%s->startEmbedComponent(', $componentRuntime))
-            ->string($this->getAttribute('component'))
+            ->raw(\sprintf('$%s', $componentName))
             ->raw(', ')
             ->raw('Twig\Extension\CoreExtension::toArray')
             ->raw('(');
