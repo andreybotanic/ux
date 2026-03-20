@@ -12,12 +12,12 @@
 - The `ComponentTemplateFinder` does not accept `Twig\Environment` as first argument anymore, pass a `LoaderInterface` instead
 - The `ComponentTemplateFinder` does not accept a nullable `directory` argument anymore, pass a string instead
 - Remove old compatibility layer with deprecated `StimulusTwigExtension` from WebpackEncoreBundle ^1.0, use StimulusBundle instead
+- Add support for dynamic expressions and component object instances in the `{% component %}` tag
 
 ## 2.33
 
 - Extended support for the `index.html.twig` template fallback when resolving namespaced anonymous components
 - Add support for dynamic template resolution with `AsTwigComponent(template: FromMethod('getCustomFuntion'))`
-- Add support for dynamic expressions and component object instances in the `{% component %}` tag
 
 ## 2.32
 
