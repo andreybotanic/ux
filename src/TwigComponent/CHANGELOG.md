@@ -17,6 +17,7 @@
 
 - Extended support for the `index.html.twig` template fallback when resolving namespaced anonymous components
 - Add support for dynamic template resolution with `AsTwigComponent(template: FromMethod('getCustomFuntion'))`
+- Add support for dynamic expressions and component object instances in the `{% component %}` tag
 
 ## 2.32
 
