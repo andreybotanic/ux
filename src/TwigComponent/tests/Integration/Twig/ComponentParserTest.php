@@ -70,6 +70,16 @@ final class ComponentParserTest extends KernelTestCase
         $environment->createTemplate($source, 'foo.html.twig');
     }
 
+    public function testItAcceptsDynamicComponentExpression()
+    {
+        $environment = $this->createEnvironment();
+        $source = '{% component var.componentName %}{% endcomponent %}';
+
+        $template = $environment->createTemplate($source);
+
+        $this->assertInstanceOf(TemplateWrapper::class, $template);
+    }
+
     public static function provideValidComponentNames(): iterable
     {
         // Those names are all syntactically valid even if

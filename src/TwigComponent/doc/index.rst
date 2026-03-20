@@ -856,6 +856,27 @@ There is also a non-HTML syntax that can be used:
         {% block footer %}... footer content{% endblock %}
     {% endcomponent %}
 
+The ``{% component %}`` tag also accepts dynamic expressions:
+
+.. code-block:: html+twig
+
+    {% set prefix = 'DynamicNameComponent' %}
+
+    {% for i in 1..2 %}
+        {% component (prefix ~ i) %}{% endcomponent %}
+    {% endfor %}
+
+If you pass a variable that contains a component object, its class will be
+used to resolve the component name:
+
+.. code-block:: html+twig
+
+    {% component componentObject %}{% endcomponent %}
+
+Where ``componentObject`` must be an instance of a class-based component (e.g.
+``#[AsTwigComponent]``/``#[AsLiveComponent]``). Anonymous components cannot be
+resolved from an object expression.
+
 .. _embedded-components-context:
 
 Context / Variables Inside of Blocks
