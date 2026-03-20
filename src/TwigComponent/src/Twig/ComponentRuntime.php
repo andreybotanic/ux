@@ -12,6 +12,7 @@
 namespace Symfony\UX\TwigComponent\Twig;
 
 use Symfony\Component\DependencyInjection\ServiceLocator;
+use Symfony\UX\TwigComponent\ComponentFactory;
 use Symfony\UX\TwigComponent\ComponentRenderer;
 use Symfony\UX\TwigComponent\Event\PreRenderEvent;
 
@@ -26,6 +27,7 @@ final class ComponentRuntime
     public function __construct(
         private readonly ComponentRenderer $renderer,
         private readonly ServiceLocator $renderers,
+        private readonly ComponentFactory $componentFactory,
     ) {
     }
 
@@ -58,5 +60,10 @@ final class ComponentRuntime
     public function startEmbedComponent(string $name, array $props, array $context, string $hostTemplateName, int $index): PreRenderEvent
     {
         return $this->renderer->startEmbeddedComponentRender($name, $props, $context, $hostTemplateName, $index);
+    }
+
+    public function isObjectComponent(object $component): bool
+    {
+        return $this->componentFactory->isComponentClass($component::class);
     }
 }
