@@ -858,10 +858,9 @@ There is also a non-HTML syntax that can be used:
 
 The ``{% component %}`` tag also accepts dynamic expressions:
 
-.. code-block:: html+twig
+.. code-block:: twig
 
     {% set prefix = 'DynamicNameComponent' %}
-
     {% for i in 1..2 %}
         {% component (prefix ~ i) %}{% endcomponent %}
     {% endfor %}
@@ -869,7 +868,7 @@ The ``{% component %}`` tag also accepts dynamic expressions:
 If you pass a variable that contains a component object, its class will be
 used to resolve the component name:
 
-.. code-block:: html+twig
+.. code-block:: twig
 
     {% component componentObject %}{% endcomponent %}
 
