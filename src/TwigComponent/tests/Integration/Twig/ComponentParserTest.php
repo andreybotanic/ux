@@ -26,7 +26,7 @@ use Twig\TemplateWrapper;
 final class ComponentParserTest extends KernelTestCase
 {
     #[DataProvider('provideValidComponentNames')]
-    public function testAcceptTwigComponentTagWithValidComponentName(string $name)
+    public function testAcceptTwigComponentTagWithValidComponentName(string $name): void
     {
         $environment = $this->createEnvironment();
         $source = str_replace('XXX', $name, "{% component 'XXX' %}{% endcomponent %}");
@@ -37,7 +37,7 @@ final class ComponentParserTest extends KernelTestCase
     }
 
     #[DataProvider('provideValidComponentNames')]
-    public function testAcceptHtmlComponentTagWithValidComponentName(string $name)
+    public function testAcceptHtmlComponentTagWithValidComponentName(string $name): void
     {
         $environment = $this->createEnvironment();
         $source = \sprintf('<twig:%s></twig:%s>', $name, $name);
@@ -48,7 +48,7 @@ final class ComponentParserTest extends KernelTestCase
     }
 
     #[DataProvider('provideValidComponentNames')]
-    public function testAcceptHtmlSelfClosingComponentTagWithValidComponentName(string $name)
+    public function testAcceptHtmlSelfClosingComponentTagWithValidComponentName(string $name): void
     {
         $environment = $this->createEnvironment();
         $source = \sprintf('<twig:%s />', $name);
@@ -58,7 +58,7 @@ final class ComponentParserTest extends KernelTestCase
         $this->assertInstanceOf(TemplateWrapper::class, $template);
     }
 
-    public function testItThrowsWhenComponentNameCannotBeParsed()
+    public function testItThrowsWhenComponentNameCannotBeParsed(): void
     {
         $environment = $this->createEnvironment();
         $source = '{% component [] %}{% endcomponent %}';
@@ -70,7 +70,7 @@ final class ComponentParserTest extends KernelTestCase
         $environment->createTemplate($source, 'foo.html.twig');
     }
 
-    public function testItAcceptsDynamicComponentExpression()
+    public function testItAcceptsDynamicComponentExpression(): void
     {
         $environment = $this->createEnvironment();
         $source = '{% component var.componentName %}{% endcomponent %}';

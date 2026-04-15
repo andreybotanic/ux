@@ -16,7 +16,6 @@ use Twig\Attribute\YieldReady;
 use Twig\Compiler;
 use Twig\Environment;
 use Twig\Error\SyntaxError;
-use Twig\Extension\CoreExtension;
 use Twig\Node\Expression\AbstractExpression;
 use Twig\Node\Expression\NameExpression;
 use Twig\Node\Node;
