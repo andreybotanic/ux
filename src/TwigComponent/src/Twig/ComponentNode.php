@@ -59,60 +59,75 @@ final class ComponentNode extends Node implements NodeOutputInterface
 
         $componentNameValue = $compiler->getVarName();
         $componentName = $compiler->getVarName();
+        $componentExpression = $this->getNode('component');
 
-        $compiler
-            ->write(\sprintf('$%s = ', $componentNameValue))
-        ;
+        if ($componentExpression instanceof NameExpression && !$componentExpression->hasExplicitParentheses()) {
+            $name = var_export($componentExpression->getAttribute('name'), true);
 
-        if ($this->getNode('component') instanceof NameExpression) {
-            $name = $this->getNode('component')->getAttribute('name');
-            $compiler->raw(\sprintf('\\array_key_exists(%s, $context) ? $context[%s] : %s', var_export($name, true), var_export($name, true), var_export($name, true)));
+            $compiler
+                ->write(\sprintf('$%s = %s;', $componentName, $name))
+                ->raw("\n")
+                ->write(\sprintf('if (\\array_key_exists(%s, $context) && \\is_object($context[%s]) && $%s->isObjectComponent($context[%s])) {', $name, $name, $componentRuntime, $name))
+                ->raw("\n")
+                ->indent()
+                ->write('throw new ')
+                ->raw('\\'.SyntaxError::class)
+                ->raw('(')
+                ->string('When passing a component object to "{% component %}", wrap the expression in parentheses, e.g. {% component (componentObject) %}.')
+                ->raw(', ')
+                ->repr($this->getTemplateLine())
+                ->raw(", \$this->getSourceContext());\n")
+                ->outdent()
+                ->write("}\n");
         } else {
-            $compiler->subcompile($this->getNode('component'));
+            $compiler
+                ->write(\sprintf('$%s = ', $componentNameValue))
+            ;
+
+            $compiler->subcompile($componentExpression);
+            $compiler->raw(";\n");
+
+            $compiler
+                ->write(\sprintf('if (\\is_object($%s)) {', $componentNameValue))
+                ->raw("\n")
+                ->indent()
+                ->write(\sprintf('if (!$%s->isObjectComponent($%s)) {', $componentRuntime, $componentNameValue))
+                ->raw("\n")
+                ->indent()
+                ->write('throw new ')
+                ->raw('\\'.SyntaxError::class)
+                ->raw('(sprintf(')
+                ->string('The component expression passed to "{%% component %%}" must evaluate to a component name (string/scalar/Stringable) or a component object. Got object "%s".')
+                ->raw(', ')
+                ->raw(\sprintf('$%s::class', $componentNameValue))
+                ->raw('), ')
+                ->repr($this->getTemplateLine())
+                ->raw(", \$this->getSourceContext());\n")
+                ->outdent()
+                ->write("}\n")
+                ->write(\sprintf('$%s = $%s::class;', $componentName, $componentNameValue))
+                ->raw("\n")
+                ->outdent()
+                ->write(\sprintf('} elseif (\\is_scalar($%s) || $%s instanceof \\Stringable) {', $componentNameValue, $componentNameValue))
+                ->raw("\n")
+                ->indent()
+                ->write(\sprintf('$%s = (string) $%s;', $componentName, $componentNameValue))
+                ->raw("\n")
+                ->outdent()
+                ->write("} else {\n")
+                ->indent()
+                ->write('throw new ')
+                ->raw('\\'.SyntaxError::class)
+                ->raw('(sprintf(')
+                ->string('The component expression passed to "{%% component %%}" must evaluate to a component name (string/scalar/Stringable) or a component object. Got "%s".')
+                ->raw(', \\get_debug_type(')
+                ->raw(\sprintf('$%s', $componentNameValue))
+                ->raw(')), ')
+                ->repr($this->getTemplateLine())
+                ->raw(", \$this->getSourceContext());\n")
+                ->outdent()
+                ->write("}\n");
         }
-
-        $compiler->raw(";\n");
-
-        $compiler
-            ->write(\sprintf('if (\\is_object($%s)) {', $componentNameValue))
-            ->raw("\n")
-            ->indent()
-            ->write(\sprintf('if (!$%s->isObjectComponent($%s)) {', $componentRuntime, $componentNameValue))
-            ->raw("\n")
-            ->indent()
-            ->write('throw new ')
-            ->raw('\\'.SyntaxError::class)
-            ->raw('(sprintf(')
-            ->string('The component expression passed to "{%% component %%}" must evaluate to a component name (string/scalar/Stringable) or a component object. Got object "%s".')
-            ->raw(', ')
-            ->raw(\sprintf('$%s::class', $componentNameValue))
-            ->raw('), ')
-            ->repr($this->getTemplateLine())
-            ->raw(", \$this->getSourceContext());\n")
-            ->outdent()
-            ->write("}\n")
-            ->write(\sprintf('$%s = $%s::class;', $componentName, $componentNameValue))
-            ->raw("\n")
-            ->outdent()
-            ->write(\sprintf('} elseif (\\is_scalar($%s) || $%s instanceof \\Stringable) {', $componentNameValue, $componentNameValue))
-            ->raw("\n")
-            ->indent()
-            ->write(\sprintf('$%s = (string) $%s;', $componentName, $componentNameValue))
-            ->raw("\n")
-            ->outdent()
-            ->write("} else {\n")
-            ->indent()
-            ->write('throw new ')
-            ->raw('\\'.SyntaxError::class)
-            ->raw('(sprintf(')
-            ->string('The component expression passed to "{%% component %%}" must evaluate to a component name (string/scalar/Stringable) or a component object. Got "%s".')
-            ->raw(', \\get_debug_type(')
-            ->raw(\sprintf('$%s', $componentNameValue))
-            ->raw(')), ')
-            ->repr($this->getTemplateLine())
-            ->raw(", \$this->getSourceContext());\n")
-            ->outdent()
-            ->write("}\n");
 
         /*
          * Block 1) PreCreateForRender handling

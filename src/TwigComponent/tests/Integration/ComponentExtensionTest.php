@@ -183,7 +183,7 @@ final class ComponentExtensionTest extends KernelTestCase
     public function testCanRenderEmbeddedComponentFromObjectExpression(): void
     {
         $environment = self::getContainer()->get(Environment::class);
-        $template = $environment->createTemplate('{% for component in components %}{% component component %}{% endcomponent %}{% endfor %}');
+        $template = $environment->createTemplate('{% for component in components %}{% component (component) %}{% endcomponent %}{% endfor %}');
         $output = $template->render([
             'components' => [
                 new DynamicNameComponent1(),
@@ -195,6 +195,85 @@ final class ComponentExtensionTest extends KernelTestCase
         $this->assertStringContainsString('DynamicNameComponent2 rendered', $output);
     }
 
+    public function testCanRenderEmbeddedComponentFromArrayIndexExpression(): void
+    {
+        $environment = self::getContainer()->get(Environment::class);
+        $template = $environment->createTemplate('{% for i in 0..1 %}{% component (componentsArray[i]) %}{% endcomponent %}{% endfor %}');
+        $output = $template->render([
+            'componentsArray' => ['DynamicNameComponent1', 'DynamicNameComponent2'],
+        ]);
+
+        $this->assertStringContainsString('DynamicNameComponent1 rendered', $output);
+        $this->assertStringContainsString('DynamicNameComponent2 rendered', $output);
+    }
+
+    public function testCanRenderEmbeddedComponentFromObjectPropertyExpression(): void
+    {
+        $environment = self::getContainer()->get(Environment::class);
+        $template = $environment->createTemplate('{% component (someObject.component) %}{% endcomponent %}');
+        $output = $template->render([
+            'someObject' => (object) ['component' => new DynamicNameComponent2()],
+        ]);
+
+        $this->assertStringContainsString('DynamicNameComponent2 rendered', $output);
+    }
+
+    public function testCanRenderEmbeddedComponentFromComponentNameVariableExpression(): void
+    {
+        $environment = self::getContainer()->get(Environment::class);
+        $template = $environment->createTemplate('{% component (componentNameVariable) %}{% endcomponent %}');
+        $output = $template->render([
+            'componentNameVariable' => 'DynamicNameComponent1',
+        ]);
+
+        $this->assertStringContainsString('DynamicNameComponent1 rendered', $output);
+    }
+
+    public function testCanRenderEmbeddedComponentFromStringVariableExpression(): void
+    {
+        $environment = self::getContainer()->get(Environment::class);
+        $template = $environment->createTemplate('{% component (stringVariable) %}{% endcomponent %}');
+        $output = $template->render([
+            'stringVariable' => 'DynamicNameComponent2',
+        ]);
+
+        $this->assertStringContainsString('DynamicNameComponent2 rendered', $output);
+    }
+
+    public function testThrowsWhenStringVariableExpressionIsNotWrappedInParentheses(): void
+    {
+        $this->expectException(RuntimeError::class);
+        $this->expectExceptionMessage('Unknown component "stringVariable"');
+
+        $environment = self::getContainer()->get(Environment::class);
+        $template = $environment->createTemplate('{% component stringVariable %}{% endcomponent %}');
+        $template->render([
+            'stringVariable' => 'DynamicNameComponent2',
+        ]);
+    }
+
+    public function testBareComponentNameStaysStaticWhenSameNamedVariableExists(): void
+    {
+        $environment = self::getContainer()->get(Environment::class);
+        $template = $environment->createTemplate('{% component DynamicNameComponent1 %}{% endcomponent %}');
+        $output = $template->render([
+            'DynamicNameComponent1' => 'DynamicNameComponent2',
+        ]);
+
+        $this->assertStringContainsString('DynamicNameComponent1 rendered', $output);
+        $this->assertStringNotContainsString('DynamicNameComponent2 rendered', $output);
+    }
+
+    public function testThrowsWhenComponentObjectExpressionIsNotWrappedInParentheses(): void
+    {
+        $this->expectException(SyntaxError::class);
+        $this->expectExceptionMessage('When passing a component object to "{% component %}", wrap the expression in parentheses, e.g. {% component (componentObject) %}');
+
+        $environment = self::getContainer()->get(Environment::class);
+        $template = $environment->createTemplate('{% component componentObject %}{% endcomponent %}');
+        $template->render(['componentObject' => new DynamicNameComponent1()]);
+    }
+
     public function testThrowsWhenObjectExpressionIsNotAComponent(): void
     {
         $this->expectException(SyntaxError::class);
@@ -202,7 +281,7 @@ final class ComponentExtensionTest extends KernelTestCase
         $this->expectExceptionMessage('stdClass');
 
         $environment = self::getContainer()->get(Environment::class);
-        $template = $environment->createTemplate('{% component obj %}{% endcomponent %}');
+        $template = $environment->createTemplate('{% component (obj) %}{% endcomponent %}');
         $template->render(['obj' => new \stdClass()]);
     }
 

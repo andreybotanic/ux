@@ -88,19 +88,23 @@ final class ComponentTokenParser extends AbstractTokenParser
 
     private function componentNameExpression(AbstractExpression $expression): ?AbstractExpression
     {
-        if ($expression instanceof ConstantExpression) { // using {% component 'name' %}
-            return $expression;
-        }
-
-        if ($expression instanceof NameExpression) { // using {% component name %}
-            return $expression;
-        }
-
         if ($expression instanceof ArrayExpression) {
             return null;
         }
 
-        return $expression;
+        if ($expression instanceof ConstantExpression) { // using {% component 'name' %}
+            return $expression;
+        }
+
+        if ($expression instanceof NameExpression && !$expression->hasExplicitParentheses()) { // using {% component Alert %}
+            return $expression;
+        }
+
+        if ($expression->hasExplicitParentheses()) {
+            return $expression;
+        }
+
+        throw new SyntaxError('When passing a dynamic component expression to "{% component %}", wrap the expression in parentheses, e.g. {% component (componentNameVariable) %}.', $expression->getTemplateLine(), $this->parser->getStream()->getSourceContext());
     }
 
     /**
